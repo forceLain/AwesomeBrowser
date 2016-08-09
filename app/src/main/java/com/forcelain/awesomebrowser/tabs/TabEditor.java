@@ -1,5 +1,9 @@
 package com.forcelain.awesomebrowser.tabs;
 
+/**
+ * Convenience class to store and retrieve data in/from TabModels
+ * You can use it, or extend it, or use custom mechanism as you wish
+ */
 public class TabEditor {
 
     public static final String ARG_URL = "ARG_URL";

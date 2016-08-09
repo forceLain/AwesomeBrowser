@@ -7,15 +7,32 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+/**
+ * An ordered collection of TabModel instances that
+ * prohibits duplicates
+ * This implementation does not expect a null-reference of the TabModel
+ */
 public class BaseTabManager implements TabManager {
 
     private final List<TabModel> tabs = new ArrayList<>();
 
+    /**
+     * Add tabModel at the end of the list
+     * @param tabModel object to add
+     * @return true if tabModel is added, false otherwise
+     */
     @Override
     public boolean addTab(@NonNull TabModel tabModel) {
         return addTabInternal(-1, tabModel);
     }
 
+    /**
+     * Add tabModel at the position in the list
+     * @param position index to insert at
+     * @param tabModel object to insert
+     * @return true if tabModel is added, false otherwise
+     * @throws ArrayIndexOutOfBoundsException if the position is out of list's bounds
+     */
     @Override
     public boolean addTab(int position, TabModel tabModel) {
         return addTabInternal(position, tabModel);
@@ -37,11 +54,18 @@ public class BaseTabManager implements TabManager {
         return false;
     }
 
+    /**
+     * @return count of tabs
+     */
     @Override
     public int count() {
         return tabs.size();
     }
 
+    /**
+     * Replace any present list with the content of the passed list
+     * All duplicates will be removed
+     */
     @Override
     public void setTabs(List<TabModel> tabModels) {
         tabs.clear();
@@ -51,11 +75,20 @@ public class BaseTabManager implements TabManager {
         }
     }
 
+    /**
+     * Returns a TabModel at the given position
+     * @throws ArrayIndexOutOfBoundsException if the position is out of list's bounds
+     */
     @Override
     public TabModel getTab(int position) {
         return tabs.get(position);
     }
 
+    /**
+     * Return a TabModel with the given id if any
+     * @param id an id of the TabModel
+     * @return a TabModel with the given id or null if there is no such object
+     */
     @Override
     public TabModel getTab(String id) {
         for (TabModel tab : tabs) {
@@ -66,16 +99,29 @@ public class BaseTabManager implements TabManager {
         return null;
     }
 
+    /**
+     * Removes an object at the given position
+     * @return removed object
+     * @throws ArrayIndexOutOfBoundsException if the position is out of list's bounds
+     */
     @Override
-    public TabModel removeTab(int currentItem) {
-        return tabs.remove(currentItem);
+    public TabModel removeTab(int position) {
+        return tabs.remove(position);
     }
 
+    /**
+     * Removes the given object from the list
+     * @param tabModel object to remove
+     * @return true if the object was in the list and has been removed, false otherwise
+     */
     @Override
     public boolean removeTab(TabModel tabModel) {
         return tabs.remove(tabModel);
     }
 
+    /**
+     * Return a new collection with the content of the current internal list
+     */
     @Override
     public List<TabModel> getAllTabs() {
         return new ArrayList<>(tabs);

@@ -3,6 +3,12 @@ package com.forcelain.awesomebrowser.tabs;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 
+/**
+ * This class keeps information of a "Tab"
+ * The only required field is "id"
+ * By default, TabModels are equals if their ids are equals
+ * Any other data such url, title, color or whatever can be stored in the Bundle of the TabModel
+ */
 public class TabModel {
 
     private final String id;
