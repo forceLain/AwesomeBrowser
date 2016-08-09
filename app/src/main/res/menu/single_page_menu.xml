@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/choose_tab"
+        android:title="@string/choose_tab"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/clear_tabs"
+        android:title="@string/clear_tabs"
+        app:showAsAction="never"/>
+
+</menu>
