@@ -14,29 +14,27 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
+import android.webkit.WebView;
 import android.widget.EditText;
 import android.widget.TextView;
 
 import com.forcelain.awesomebrowser.R;
-import com.forcelain.awesomebrowser.presentation.common.TabManagerActivity;
 import com.forcelain.awesomebrowser.presentation.common.TabNotifierManager;
+import com.forcelain.awesomebrowser.presentation.common.WebActivity;
+import com.forcelain.awesomebrowser.presentation.common.WebViewCache;
 import com.forcelain.awesomebrowser.tabs.TabEditor;
 import com.forcelain.awesomebrowser.tabs.TabIdGenerator;
 import com.forcelain.awesomebrowser.tabs.TabManager;
 import com.forcelain.awesomebrowser.tabs.TabModel;
-import com.forcelain.awesomebrowser.tabs.UUIDGenerator;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-public class MainActivity extends AppCompatActivity implements TabManagerActivity, TabNotifierManager.TabListener {
+public class MainActivity extends AppCompatActivity implements WebActivity, TabNotifierManager.TabListener {
 
-    private static final String STATE_PAGE_ID_LIST = "STATE_PAGE_ID_LIST";
-    private final Map<String, Fragment.SavedState> pages = new HashMap<>();
+    private static final int WEB_VIEW_COUNT = 10;
+    private final WebViewCache webViewPool = new WebViewCache(WEB_VIEW_COUNT);
     private TabNotifierManager tabManager;
     private EditText urlView;
     private View closeTabView;
@@ -56,18 +54,8 @@ public class MainActivity extends AppCompatActivity implements TabManagerActivit
 
         closeTabView.setEnabled(tabManager.count() > 1);
 
-        if (savedInstanceState == null) {
-            TabModel tabModel = getDefault();
-            getTabManager().addTab(tabModel);
-        } else {
-            ArrayList<String> pageIds = savedInstanceState.getStringArrayList(STATE_PAGE_ID_LIST);
-            if (pageIds != null) {
-                for (String pageId : pageIds) {
-                    Fragment.SavedState state = savedInstanceState.getParcelable(pageId);
-                    pages.put(pageId, state);
-                }
-            }
-        }
+        TabModel tabModel = getDefault();
+        getTabManager().addTab(tabModel);
     }
 
     @Override
@@ -97,13 +85,7 @@ public class MainActivity extends AppCompatActivity implements TabManagerActivit
     private void onPageSelected(TabModel tabModel) {
 
         if (tabModel != null) {
-            WebPageFragment webPageFragment = WebPageFragment.create(tabModel.getId());
-            Fragment.SavedState savedState = pages.get(tabModel.getId());
-            if (savedState != null) {
-                webPageFragment.setInitialSavedState(savedState);
-            }
-
-            replacePage(webPageFragment);
+            replacePage(tabModel.getId());
         }
 
         updatePageData(tabModel);
@@ -162,24 +144,15 @@ public class MainActivity extends AppCompatActivity implements TabManagerActivit
                 .show();
     }
 
-    private void replacePage(WebPageFragment webPageFragment) {
+    private void replacePage(String pageId) {
 
+        WebPageFragment webPageFragment = WebPageFragment.create(pageId);
         FragmentManager fm = getSupportFragmentManager();
-
-        Fragment fragment = fm.findFragmentById(R.id.content);
-        if (fragment instanceof WebPageFragment) {
-            String tabId = ((WebPageFragment) fragment).getTabId();
-            Fragment.SavedState savedState = fm.saveFragmentInstanceState(fragment);
-            if (pages.containsKey(tabId)) {
-                pages.put(tabId, savedState);
-            }
-        }
-
         fm
                 .beginTransaction()
                 .replace(R.id.content, webPageFragment)
                 .setCustomAnimations(android.R.anim.fade_in, android.R.anim.fade_out)
-                .commit();
+                .commitNow();
     }
 
     private Fragment getCurrentFragment() {
@@ -206,6 +179,25 @@ public class MainActivity extends AppCompatActivity implements TabManagerActivit
                     updatePageData(getTabManager().getTab(tabId));
                 }
             }
+        }
+    }
+
+    @Override
+    public WebView getWebView(String tabId) {
+        WebView webView = webViewPool.get(tabId);
+        if (webView == null) {
+            webView = new WebView(this);
+        }
+        return webView;
+    }
+
+    @Override
+    public void offerWebView(WebView webView, String tabId) {
+        TabModel tab = tabManager.getTab(tabId);
+        if (tab != null) {
+            webViewPool.put(tabId, webView);
+        } else {
+            webViewPool.remove(tabId);
         }
     }
 
@@ -246,40 +238,31 @@ public class MainActivity extends AppCompatActivity implements TabManagerActivit
     public void onTabAdded(TabModel tabModel) {
         updateCloseView(getTabManager());
         updatePageData(tabModel);
-
-        pages.put(tabModel.getId(), null);
-
-        WebPageFragment webPageFragment = WebPageFragment.create(tabModel.getId());
-        replacePage(webPageFragment);
+        replacePage(tabModel.getId());
+        Fragment currentFragment = getCurrentFragment();
+        if (currentFragment instanceof WebPageFragment) {
+            ((WebPageFragment) currentFragment).goUrl(tabEditor.getUrl(tabModel));
+        }
     }
 
     @Override
     public void onTabRemoved(TabModel tabModel, int position) {
+        webViewPool.remove(tabModel.getId());
         TabNotifierManager tabManager = getTabManager();
         updateCloseView(tabManager);
-        pages.remove(tabModel.getId());
-        position = bound(position, 0, tabManager.count() - 1);
-        TabModel nextTab = tabManager.getTab(position);
+        int nextTabPosition = bound(position, 0, tabManager.count() - 1);
+        TabModel nextTab = tabManager.getTab(nextTabPosition);
         onPageSelected(nextTab);
     }
 
     @Override
     public void onTabSetChanged() {
+        webViewPool.evictAll();
         TabNotifierManager tabManager = getTabManager();
-        List<TabModel> tabs = tabManager.getAllTabs();
         Fragment currentFragment = getCurrentFragment();
         String currentTabId = null;
         if (currentFragment instanceof WebPageFragment) {
             currentTabId = ((WebPageFragment) currentFragment).getTabId();
-        }
-        Iterator<Map.Entry<String, Fragment.SavedState>> iterator = pages.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<String, Fragment.SavedState> entry = iterator.next();
-            String pageId = entry.getKey();
-            TabModel tab = tabManager.getTab(pageId);
-            if (tab == null) {
-                iterator.remove();
-            }
         }
         TabModel currentTab = getTabManager().getTab(currentTabId);
         if (currentTab != null) {
@@ -289,19 +272,6 @@ public class MainActivity extends AppCompatActivity implements TabManagerActivit
         } else {
             onPageSelected(null);
         }
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        ArrayList<String> pageIds = new ArrayList<>(pages.size());
-        for (Map.Entry<String, Fragment.SavedState> entry : pages.entrySet()) {
-            String pageId = entry.getKey();
-            Fragment.SavedState pageState = entry.getValue();
-            outState.putParcelable(pageId, pageState);
-            pageIds.add(pageId);
-        }
-        outState.putStringArrayList(STATE_PAGE_ID_LIST, pageIds);
     }
 
     private class AddTabAction implements View.OnClickListener {

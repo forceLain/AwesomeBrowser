@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,17 +15,18 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 import com.forcelain.awesomebrowser.R;
-import com.forcelain.awesomebrowser.presentation.common.TabManagerActivity;
+import com.forcelain.awesomebrowser.presentation.common.WebActivity;
 import com.forcelain.awesomebrowser.tabs.TabEditor;
-import com.forcelain.awesomebrowser.tabs.TabModel;
 
 public class WebPageFragment extends Fragment {
 
     private static final String ARG_TAB_ID = "ARG_TAB_ID";
-    private WebView webView;
     private View progressView;
-    private TabManagerActivity tabManagerActivity;
+    private WebActivity webActivity;
     private TabEditor tabEditor = new TabEditor();
+    private ViewGroup webViewContainer;
+    private WebView webView;
+    private String pendingUrl;
 
     public static WebPageFragment create(String id) {
         WebPageFragment fragment = new WebPageFragment();
@@ -37,13 +39,13 @@ public class WebPageFragment extends Fragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        tabManagerActivity = (TabManagerActivity) context;
+        webActivity = (WebActivity) context;
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
-        tabManagerActivity = null;
+        webActivity = null;
     }
 
     @Nullable
@@ -57,26 +59,27 @@ public class WebPageFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         progressView = view.findViewById(R.id.progress_view);
         progressView.setVisibility(View.GONE);
-        webView = (WebView) view.findViewById(R.id.web_view);
+        webViewContainer = (ViewGroup) view.findViewById(R.id.web_view_container);
+        webView = webActivity.getWebView(getTabId());
+
+        webViewContainer.addView(webView);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setSupportZoom(true);
         settings.setBuiltInZoomControls(true);
         webView.setWebViewClient(new AwesomeClient());
-        if (savedInstanceState == null) {
-            TabModel tab = tabManagerActivity.getTabManager().getTab(getTabId());
-            if (tab != null) {
-                webView.loadUrl(tabEditor.getUrl(tab));
-            }
-        } else {
-            webView.restoreState(savedInstanceState);
+        if (pendingUrl != null) {
+            goUrl(pendingUrl);
+            pendingUrl = null;
         }
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        webView.destroy();
+        webViewContainer.removeAllViews();
+        webActivity.offerWebView(webView, getTabId());
+        webView = null;
     }
 
     @Override
@@ -89,12 +92,6 @@ public class WebPageFragment extends Fragment {
     public void onPause() {
         super.onPause();
         webView.onPause();
-    }
-
-    @Override
-    public void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        webView.saveState(outState);
     }
 
     public boolean handleBack() {
@@ -115,6 +112,8 @@ public class WebPageFragment extends Fragment {
                 url = "http://" + url;
             }
             webView.loadUrl(url);
+        } else {
+            pendingUrl = url;
         }
     }
 
@@ -135,8 +134,8 @@ public class WebPageFragment extends Fragment {
         public void onPageFinished(WebView view, String url) {
             super.onPageFinished(view, url);
             progressView.setVisibility(View.GONE);
-            if (tabManagerActivity != null) {
-                tabManagerActivity.onPageLoaded(getTabId(), url, webView.getTitle());
+            if (webActivity != null) {
+                webActivity.onPageLoaded(getTabId(), url, webView.getTitle());
             }
         }
     }
