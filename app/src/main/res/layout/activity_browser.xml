@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".presentation.MainActivity">
+    tools:context=".presentation.browser.BrowserActivity">
 
     <RelativeLayout
         android:id="@+id/control_container"
@@ -20,6 +20,7 @@
             android:text="@string/go"/>
 
         <EditText
+            android:selectAllOnFocus="true"
             android:id="@+id/url_edit_text"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -44,6 +45,12 @@
             android:text="@string/close_tab"/>
 
     </RelativeLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:text="@string/no_tabs"/>
 
     <FrameLayout
         android:id="@+id/content"

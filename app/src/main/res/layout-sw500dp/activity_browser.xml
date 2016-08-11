@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".presentation.browser.BrowserActivity">
+
+    <RelativeLayout
+        android:id="@+id/control_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/go_url_action"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:text="@string/go"/>
+
+        <EditText
+            android:id="@+id/url_edit_text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_toLeftOf="@id/go_url_action"
+            android:layout_toStartOf="@id/go_url_action"
+            android:inputType="textUri"
+            android:selectAllOnFocus="true"/>
+
+        <Button
+            android:id="@+id/add_tab_action"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:layout_below="@id/url_edit_text"
+            android:text="@string/new_tab"/>
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/tabs_view"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_alignTop="@id/add_tab_action"
+            android:layout_toLeftOf="@id/add_tab_action"
+            android:layout_toStartOf="@id/add_tab_action"/>
+
+    </RelativeLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:text="@string/no_tabs"/>
+
+    <FrameLayout
+        android:id="@+id/content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@+id/control_container"/>
+
+</RelativeLayout>
